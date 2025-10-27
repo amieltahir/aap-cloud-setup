@@ -8,3 +8,84 @@ ansible-galaxy collection install ansible.controller
 ansible-galaxy collection install infra.controller_configuration
 
 awx-manage register_default_execution_environments
+
+###########################################################
+# AWX-MANAGE & DB COMMANDS CHEAT SHEET (FULL)
+###########################################################
+
+##############################
+#  Database Management
+##############################
+
+# Check database connectivity and migrations
+awx-manage check_db
+# - Verifies DB is reachable and migrations are up-to-date
+
+# Apply pending migrations (always after upgrades)
+awx-manage migrate
+
+# Create a superuser
+awx-manage createsuperuser
+
+# Change password for an existing user
+awx-manage changepassword <username>
+
+##############################
+# Backup & Restore
+##############################
+
+# 2a. AWX-level backup (JSON)
+awx-manage dumpdata --all > awx_data.json
+# - Exports all AWX objects: projects, inventories, templates, users, job history
+
+# Restore AWX-level backup
+awx-manage loaddata awx_data.json
+
+# 2b. PostgreSQL raw backup (full DB)
+pg_dump -U awx -h localhost -Fc awx > awx_backup_$(date +%F).dump
+# Restore PostgreSQL DB
+pg_restore -U awx -h localhost -d awx awx_backup_2025-10-26.dump
+
+##############################
+#  Cleanup & Maintenance
+##############################
+
+# Clean up old job history older than <days>
+awx-manage cleanup_jobs --jobs <days>
+
+# Clear user sessions (logs out all users)
+awx-manage clearsessions
+
+# Reset default organizations/projects (lab/testing only)
+awx-manage reset_organizations
+
+##############################
+#  Projects, Inventories, and Execution Environments
+##############################
+
+# List execution environments
+awx-manage list_execution_environments
+
+# Create execution environment
+awx-manage create_execution_environment --name <name> --image <docker_image>
+
+# Assign execution environment to a project
+awx-manage associate_execution_environment --project <project_name> --ee <ee_name>
+
+# Notes:
+# - Projects: awx-manage can create and update projects via API/CLI or via playbooks
+# - Inventories: can be created dynamically or statically through API/playbooks
+# - Execution Environments (EE) can be assigned per project or inventory
+# - Useful for segregating AWS, Azure, or AAP specific workloads
+
+##############################
+#  Tips & Notes for Interview
+#############################
+
+# - Always check DB before upgrades: `check_db`
+# - Run `migrate` after upgrades to apply schema changes
+# - Use AWX-level backup (`dumpdata`) for portable restore
+# - Use raw `pg_dump` for full DB-level backup (includes everything)
+# - Clean up old jobs to keep DB size manageable: `cleanup_jobs`
+# - EE management: list, create, assign to projects/inventories
+# - For users: create, reset passwords, clear sessions
