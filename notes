@@ -6,3 +6,5 @@ ansible-galaxy collection install awx.awx
 ansible-galaxy collection install ansible.controller
 
 ansible-galaxy collection install infra.controller_configuration
+
+awx-manage register_default_execution_environments
