@@ -182,7 +182,7 @@
     - name: Display inventory creation results
       debug:
         msg: |
-          ✅ Inventories Created Successfully!
+          Inventories Created Successfully!
           AAP Operations: {{ aap_inventory.json.id }} (controller01, hub01, db01)
           AWS Operations: {{ aws_inventory.json.id }} (dynamic)
           Azure Operations: {{ azure_inventory.json.id }} (dynamic)
