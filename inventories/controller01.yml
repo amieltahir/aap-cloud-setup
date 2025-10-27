@@ -1,0 +1,36 @@
+---
+all:
+  hosts:
+    controller01:
+      ansible_host: 3.82.121.77
+      ansible_user: trsadmin
+      ansible_private_key_file: /home/trsadmin/.ssh/id_rsa_trsadmin
+      ansible_connection: ssh
+      ansible_become: yes
+      ansible_become_method: sudo
+      ansible_python_interpreter: /usr/bin/python3
+  children:
+    aap_controllers:
+      hosts:
+        controller01:
+    automationcontroller:
+      hosts:
+        controller01:
+  vars:
+    ansible_timeout: 60
+    ansible_ssh_timeout: 60
+    ansible_command_timeout: 600
+    ansible_ssh_common_args: "-o ControlMaster=no -o ControlPersist=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10"
+    ansible_ssh_retries: 5
+    
+    # AAP Controller API Settings
+    controller_host: "https://3.82.121.77"
+    controller_username: "admin"
+    controller_validate_certs: false
+    
+    # Organization
+    organization_name: "TRS"
+    
+    # SSL Settings (if needed)
+    web_server_ssl_cert: "/etc/tower/tower.cert"
+    web_server_ssl_key: "/etc/tower/tower.key"

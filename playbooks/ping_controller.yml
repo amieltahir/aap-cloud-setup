@@ -1,0 +1,14 @@
+---
+- name: Ping AAP Controller
+  hosts: aap_controllers
+  gather_facts: false
+  tasks:
+    - name: Ping controller API
+      uri:
+        url: "https://3.82.121.77/api/v2/ping/"
+        method: GET
+        user: "admin"
+        password: "{{ controller_password }}"
+        validate_certs: no
+        return_content: yes
+      delegate_to: localhost

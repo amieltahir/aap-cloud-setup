@@ -1,0 +1,33 @@
+---
+- name: Create Organization via AAP API (Token Auth)
+  hosts: aap_controllers
+  gather_facts: false
+  vars_files:
+    - "../group_vars/secrets.yml"
+
+  vars:
+    controller_host: "https://3.82.121.77"
+    controller_validate_certs: false
+    org_name: "Cloud-Management"
+    org_description: "Organization for cloud automation"
+
+  tasks:
+    - name: Create organization
+      uri:
+        url: "{{ controller_host }}/api/v2/organizations/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        validate_certs: "{{ controller_validate_certs }}"
+        body:
+          name: "{{ org_name }}"
+          description: "{{ org_description }}"
+        body_format: json
+        status_code: 201
+      delegate_to: localhost
+      register: org_result
+
+    - debug:
+        var: org_result.json
+

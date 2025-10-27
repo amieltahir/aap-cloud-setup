@@ -1,0 +1,188 @@
+# playbooks/setup_trs_inventories_fixed.yml
+---
+- name: Setup TRS Inventories
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "../group_vars/secrets.yml"
+
+  vars:
+    controller_host: "https://3.82.121.77"
+    controller_token: "{{ controller_token }}"
+    organization_name: "Cloud-Management"
+
+  tasks:
+    - name: Get TRS organization ID
+      uri:
+        url: "{{ controller_host }}/api/v2/organizations/?name={{ organization_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+        validate_certs: false
+      register: org_result
+      failed_when: org_result.json.count == 0
+
+    - name: Set organization ID fact
+      set_fact:
+        org_id: "{{ org_result.json.results[0].id }}"
+
+    - name: Create AAP-Operations Inventory
+      uri:
+        url: "{{ controller_host }}/api/v2/inventories/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "aap-operations-inventory"
+          description: "TRS AAP Infrastructure Nodes"
+          organization: "{{ org_id }}"
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+      register: aap_inventory
+
+    - name: Add controller01 to AAP inventory
+      uri:
+        url: "{{ controller_host }}/api/v2/hosts/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "controller01"
+          description: "AAP Controller Node"
+          inventory: "{{ aap_inventory.json.id }}"
+          variables: |
+            {
+              "ansible_host": "3.82.121.77",
+              "ansible_user": "ec2-user",
+              "ansible_connection": "ssh",
+              "node_type": "controller"
+            }
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+
+    - name: Add hub01 to AAP inventory
+      uri:
+        url: "{{ controller_host }}/api/v2/hosts/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "hub01"
+          description: "AAP Hub Node"
+          inventory: "{{ aap_inventory.json.id }}"
+          variables: |
+            {
+              "ansible_host": "hub01.trs.internal",
+              "ansible_user": "ec2-user", 
+              "ansible_connection": "ssh",
+              "node_type": "hub"
+            }
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+
+    - name: Add db01 to AAP inventory
+      uri:
+        url: "{{ controller_host }}/api/v2/hosts/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "db01"
+          description: "AAP Database Node"
+          inventory: "{{ aap_inventory.json.id }}"
+          variables: |
+            {
+              "ansible_host": "db01.trs.internal",
+              "ansible_user": "ec2-user",
+              "ansible_connection": "ssh", 
+              "node_type": "database"
+            }
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+
+    - name: Create AWS-Operations Inventory (Dynamic)
+      uri:
+        url: "{{ controller_host }}/api/v2/inventories/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "aws-operations-inventory"
+          description: "TRS AWS Dynamic Inventory"
+          organization: "{{ org_id }}"
+          variables: |
+            {
+              "plugin": "aws_ec2",
+              "regions": ["us-east-1", "us-west-2"],
+              "filters": {
+                "instance-state-name": "running"
+              },
+              "keyed_groups": [
+                {
+                  "key": "tags",
+                  "prefix": "tag"
+                },
+                {
+                  "key": "placement.region", 
+                  "prefix": "aws_region"
+                }
+              ],
+              "compose": {
+                "ansible_host": "private_ip_address"
+              }
+            }
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+      register: aws_inventory
+
+    - name: Create Azure-Operations Inventory (Dynamic)
+      uri:
+        url: "{{ controller_host }}/api/v2/inventories/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ controller_token }}"
+          Content-Type: "application/json"
+        body:
+          name: "azure-operations-inventory"
+          description: "TRS Azure Dynamic Inventory"
+          organization: "{{ org_id }}"
+          variables: |
+            {
+              "plugin": "azure_rm",
+              "include_vm_resource_groups": ["*"],
+              "keyed_groups": [
+                {
+                  "key": "tags",
+                  "prefix": "tag"
+                },
+                {
+                  "key": "location",
+                  "prefix": "azure_location"
+                }
+              ],
+              "compose": {
+                "ansible_host": "private_ipv4_addresses[0]"
+              }
+            }
+        body_format: json
+        validate_certs: false
+        status_code: [200, 201]
+      register: azure_inventory
+
+    - name: Display inventory creation results
+      debug:
+        msg: |
+          ✅ Inventories Created Successfully!
+          AAP Operations: {{ aap_inventory.json.id }} (controller01, hub01, db01)
+          AWS Operations: {{ aws_inventory.json.id }} (dynamic)
+          Azure Operations: {{ azure_inventory.json.id }} (dynamic)

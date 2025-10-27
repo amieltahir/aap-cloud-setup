@@ -1,0 +1,8 @@
+# Install collections from requirements.yml
+ansible-galaxy collection install -r requirements.yml
+
+# Or install specific collections
+ansible-galaxy collection install awx.awx
+ansible-galaxy collection install ansible.controller
+
+ansible-galaxy collection install infra.controller_configuration
