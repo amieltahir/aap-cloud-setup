@@ -1,0 +1,104 @@
+###############################################################
+# AAP / AWX PERFORMANCE & MONITORING METRICS (Prometheus)
+###############################################################
+
+# 1️⃣ System Info
+awx_system_info{tower_version="4.5.26", license_type="trial"}
+
+# 2️⃣ Counts
+awx_organizations_total       → Total orgs
+awx_users_total               → Total users
+awx_teams_total               → Total teams
+awx_inventories_total         → Total inventories
+awx_projects_total            → Total projects
+awx_job_templates_total       → Total job templates
+awx_workflow_job_templates_total → Total workflow job templates
+awx_hosts_total{type="active"} → Active hosts
+awx_schedules_total           → Total schedules
+awx_sessions_total{type="user"} → Logged-in user sessions
+
+# 3️⃣ Job Queues & Status
+awx_running_jobs_total         → Currently running jobs
+awx_pending_jobs_total         → Pending jobs waiting in queue
+awx_status_total{status="successful"} → Jobs completed successfully
+awx_status_total{status="failed"}     → Failed jobs
+awx_status_total{status="canceled"}   → Canceled jobs
+awx_status_total{status="running"}    → Running jobs
+
+# 4️⃣ Node Capacity & Forking
+awx_instance_capacity          → Node capacity (number of forks)
+awx_instance_consumed_capacity → How much capacity currently in use
+awx_instance_remaining_capacity → Remaining available forks
+awx_instance_cpu               → CPU cores per node
+awx_instance_memory            → RAM per node
+dispatcher_pool_active_task_count → Active tasks in dispatcher pool
+dispatcher_pool_max_worker_count  → Max workers in pool
+dispatcher_availability        → Fraction of time dispatcher could accept messages
+awx_instance_launch_type_total → Launch type counts (manual, scm, workflow)
+awx_instance_status_total      → Job status per node
+
+# 5️⃣ Callbacks & Event Queue
+callback_receiver_events_queue_size_redis → Pending callback events in Redis
+callback_receiver_events_in_memory          → Events being processed
+callback_receiver_events_insert_db          → Number of events inserted to DB
+callback_receiver_events_insert_db_seconds  → Time spent inserting events
+callback_receiver_events_broadcast          → Events broadcast to other nodes
+
+# 6️⃣ Task & Workflow Manager
+task_manager__schedule_seconds        → Time spent scheduling tasks
+task_manager__schedule_calls          → Number of schedule calls
+task_manager_get_tasks_seconds        → Time to load tasks from DB
+task_manager_process_running_tasks_seconds → Processing time for running tasks
+task_manager_process_pending_tasks_seconds → Processing time for pending tasks
+task_manager_tasks_blocked            → Tasks blocked from running
+workflow_manager__schedule_seconds    → Workflow scheduling time
+workflow_manager__schedule_calls      → Workflow schedule calls
+
+# 7️⃣ Database Connections
+awx_database_connections_total → Total DB connections
+
+###############################################################
+# SAMPLE PROMQL QUERIES FOR GRAFANA
+###############################################################
+
+# Jobs running vs pending
+awx_running_jobs_total
+awx_pending_jobs_total
+
+# Job status breakdown over time
+sum by(status) (rate(awx_status_total[5m]))
+
+# Node capacity usage %
+(awx_instance_consumed_capacity / awx_instance_capacity) * 100
+
+# Dispatcher availability %
+dispatcher_availability * 100
+
+# Average time to process callback events
+avg(callback_receiver_event_processing_avg_seconds)
+
+# Number of active tasks in worker pool
+dispatcher_pool_active_task_count
+
+# Database connection usage
+awx_database_connections_total
+
+# Failed jobs trend over time
+increase(awx_instance_status_total{status="failed"}[1h])
+
+# Pending jobs queue length
+awx_pending_jobs_total
+
+###############################################################
+# NOTES
+# - These metrics are enough to monitor:
+#   • Cluster health (nodes, CPU, memory)
+#   • Job queue saturation & throughput
+#   • Task forking and dispatcher activity
+#   • Callback event processing
+#   • Database load & session info
+# - Use Grafana panels:
+#   • Time series for job queues
+#   • Gauges for node capacity & dispatcher availability
+#   • Counters for job statuses & event inserts
+###############################################################
